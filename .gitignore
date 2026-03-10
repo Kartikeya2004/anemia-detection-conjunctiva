@@ -1,5 +1,29 @@
-dataset/
-*.keras
+# Python
 __pycache__/
 *.pyc
-.env
+
+# Virtual environments
+venv/
+env/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Dataset files
+dataset/
+dataset_detection/images/
+dataset_detection/labels/
+
+# YOLO training outputs
+runs/
+
+# Demo images
+demo/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Model weights
+*.pt
+*.keras
