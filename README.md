@@ -1,22 +1,35 @@
-# Early Detection of Anemia Using Facial Image Analysis
+# Anemia Detection using Conjunctiva Image Analysis
 
-This project detects anemia using deep learning on conjunctiva images.
+This project develops a non-invasive anemia screening system using computer vision and deep learning.
 
-## Model
-- MobileNetV2 (Transfer Learning)
-- CLAHE preprocessing
-- Two-stage fine-tuning
-- Threshold optimization
+The system analyzes eye conjunctiva images to detect signs of anemia.
 
-## Performance
-- Validation Accuracy: 73%
-- Validation AUC: 0.80
+## Pipeline
 
-## Future Work
-- Automatic conjunctiva detection
-- Hb regression model
-- Clinical validation
+Eye Image  
+→ YOLO Conjunctiva Detection  
+→ CLAHE Preprocessing  
+→ MobileNetV2 Classification  
+→ Anemia Prediction
 
-## Run
+## Features
 
-python train_model.py
+- Automatic conjunctiva detection using YOLO
+- Deep learning anemia classification using MobileNetV2
+- CLAHE contrast enhancement
+- Medical evaluation metrics (Sensitivity, Specificity, Precision)
+- End-to-end demo pipeline
+- GUI application for testing
+
+## Tech Stack
+
+- Python
+- OpenCV
+- TensorFlow / Keras
+- Ultralytics YOLO
+- Scikit-learn
+
+## Results
+
+- Validation Accuracy: ~75%
+- AUC Score: ~0.8
