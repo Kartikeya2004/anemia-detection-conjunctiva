@@ -160,7 +160,7 @@ best_acc = 0
 best_t = 0.5
 
 for t in np.arange(0.30, 0.71, 0.05):
-    preds = (val_probs > t).astype(int)
+    preds = (val_probs > 0.45).astype(int)
     acc = accuracy_score(val_labels, preds)
     print(f"Threshold {t:.2f} -> Accuracy: {acc:.4f}")
     
@@ -170,6 +170,48 @@ for t in np.arange(0.30, 0.71, 0.05):
 
 print(f"\n✅ Best Threshold: {best_t:.2f}")
 print(f"✅ Best Validation Accuracy: {best_acc:.4f}")
+
+
+
+# -------------------------------
+# CONFUSION MATRIX
+# -------------------------------
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Use best threshold found earlier
+best_t = 0.50   # (change if your best threshold differs)
+
+# Convert probabilities to predictions
+final_preds = (val_probs > best_t).astype(int)
+
+# Compute confusion matrix
+cm = confusion_matrix(val_labels, final_preds)
+
+print("\nConfusion Matrix:")
+print(cm)
+
+# Plot confusion matrix
+plt.figure(figsize=(5,4))
+sns.heatmap(cm, annot=True, fmt="d")
+plt.title("Confusion Matrix")
+plt.xlabel("Predicted Label")
+plt.ylabel("True Label")
+plt.tight_layout()
+plt.savefig("confusion_matrix.png")
+plt.close()
+# MEDICAL METRICS
+tn, fp, fn, tp = cm.ravel()
+
+sensitivity = tp / (tp + fn + 1e-7)
+specificity = tn / (tn + fp + 1e-7)
+precision = tp / (tp + fp + 1e-7)
+
+print("\nMedical Evaluation Metrics:")
+print(f"Sensitivity (Recall for Anemia): {sensitivity:.3f}")
+print(f"Specificity: {specificity:.3f}")
+print(f"Precision: {precision:.3f}")
 
 
 # -------------------------------
