@@ -1,6 +1,7 @@
 # Python
 __pycache__/
 *.pyc
+*.pyo
 
 # Virtual environments
 venv/
@@ -27,3 +28,26 @@ Thumbs.db
 # Model weights
 *.pt
 *.keras
+
+# ADD THESE ↓
+
+# Flask upload/output images
+static/result.jpg
+static/gradcam.jpg
+
+# Confusion matrix images (auto-generated)
+confusion_matrix_*.png
+confusion_matrix_latest.png
+
+# Best score tracker
+best_score.txt
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
+
+# Temporary test images
+test.jpg
+*.test.jpg
