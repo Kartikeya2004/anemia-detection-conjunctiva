@@ -1,119 +1,38 @@
-import tkinter as tk
-from tkinter import filedialog
-import cv2
-import numpy as np
-from PIL import Image, ImageTk
-from ultralytics import YOLO
-import tensorflow as tf
+from flask import Flask, render_template, request
+import os
+from predict import predict_image
 
-# -----------------------------
-# LOAD MODELS
-# -----------------------------
-print("Loading models...")
+app = Flask(__name__)
 
-yolo_model = YOLO("runs/detect/train3/weights/best.pt")
-classifier = tf.keras.models.load_model("anemia_mobilenetv2.keras")
+@app.route("/")
+def home():
+    return render_template("index.html")
 
-print("Models loaded")
+@app.route("/predict", methods=["POST"])
+def predict():
+    if "file" not in request.files:
+        return "No file uploaded"
 
-IMAGE_SIZE = 160
-THRESHOLD = 0.45
+    file = request.files["file"]
 
-# -----------------------------
-# GUI
-# -----------------------------
-root = tk.Tk()
-root.title("Anemia Detection System")
+    if file.filename == "":
+        return "No selected file"
 
-title = tk.Label(root,
-                 text="Anemia Detection from Eye Conjunctiva",
-                 font=("Arial", 16, "bold"))
-title.pack(pady=10)
+    os.makedirs("static", exist_ok=True)
 
-img_label = tk.Label(root)
-img_label.pack()
+    filepath = os.path.join("static", file.filename)
+    file.save(filepath)
 
-result_label = tk.Label(root, font=("Arial", 14))
-result_label.pack(pady=10)
+    result, confidence, detected, gradcam = predict_image(filepath)
 
-
-# -----------------------------
-# PROCESS IMAGE
-# -----------------------------
-def process_image(path):
-
-    img = cv2.imread(path)
-    display = img.copy()
-
-    results = yolo_model(img, conf=0.20)[0]
-
-    if results.boxes is None or len(results.boxes) == 0:
-        result_label.config(text="No conjunctiva detected",
-                            fg="red")
-        return
-
-    boxes = results.boxes
-    best_idx = boxes.conf.argmax()
-
-    x1, y1, x2, y2 = boxes.xyxy[best_idx].cpu().numpy().astype(int)
-
-    h, w = img.shape[:2]
-    x1, y1 = max(0, x1), max(0, y1)
-    x2, y2 = min(w, x2), min(h, y2)
-
-    crop = img[y1:y2, x1:x2]
-
-    crop = cv2.resize(crop, (IMAGE_SIZE, IMAGE_SIZE))
-    crop = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
-    crop = crop / 255.0
-    crop = np.expand_dims(crop, axis=0)
-
-    prob = classifier.predict(crop, verbose=0)[0][0]
-
-    if prob > THRESHOLD:
-        result = "ANEMIC"
-        confidence = prob
-        color = (0, 0, 255)
-        text_color = "red"
-    else:
-        result = "NON-ANEMIC"
-        confidence = 1 - prob
-        color = (0, 255, 0)
-        text_color = "green"
-
-    cv2.rectangle(display, (x1, y1), (x2, y2), color, 2)
-
-    display = cv2.cvtColor(display, cv2.COLOR_BGR2RGB)
-    display = cv2.resize(display, (500, 350))
-
-    img_pil = Image.fromarray(display)
-    img_tk = ImageTk.PhotoImage(img_pil)
-
-    img_label.configure(image=img_tk)
-    img_label.image = img_tk
-
-    result_label.config(
-        text=f"Prediction: {result}\nConfidence: {confidence:.2f}",
-        fg=text_color
+    return render_template(
+        "index.html",
+        prediction=result,
+        confidence=round(confidence * 100, 2),
+        detected=detected,
+        gradcam=gradcam,
+        original=filepath
     )
 
-
-# -----------------------------
-# UPLOAD BUTTON
-# -----------------------------
-def upload():
-    file_path = filedialog.askopenfilename(
-        filetypes=[("Images", "*.jpg *.png *.jpeg")]
-    )
-    if file_path:
-        process_image(file_path)
-
-
-btn = tk.Button(root,
-                text="Upload Eye Image",
-                command=upload,
-                font=("Arial", 12))
-
-btn.pack(pady=10)
-
-root.mainloop()
+if __name__ == "__main__":
+    app.run(debug=True)

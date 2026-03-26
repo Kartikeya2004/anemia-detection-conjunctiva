@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Anemia Detection System</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    background: linear-gradient(135deg, #141e30, #243b55);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.container {
+    width: 900px;
+    padding: 30px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(18px);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    color: white;
+}
+
+h1 {
+    text-align: center;
+}
+
+.subtitle {
+    text-align: center;
+    font-size: 14px;
+    opacity: 0.7;
+    margin-bottom: 20px;
+}
+
+/* Upload */
+.drop-zone {
+    border: 2px dashed rgba(255,255,255,0.5);
+    padding: 30px;
+    border-radius: 15px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.drop-zone:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.drop-zone.dragover {
+    background: rgba(0,198,255,0.2);
+    border-color: #00c6ff;
+}
+
+input[type="file"] {
+    display: none;
+}
+
+/* Preview */
+.preview img {
+    max-width: 200px;
+    margin-top: 10px;
+    border-radius: 10px;
+}
+
+/* Button */
+button {
+    margin-top: 20px;
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(45deg, #00c6ff, #0072ff);
+    color: white;
+    cursor: pointer;
+}
+
+/* Loading */
+.loading {
+    display: none;
+    text-align: center;
+    margin-top: 20px;
+}
+
+.spinner {
+    border: 5px solid rgba(255,255,255,0.2);
+    border-top: 5px solid #00c6ff;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: auto;
+}
+
+@keyframes spin {
+    100% { transform: rotate(360deg); }
+}
+
+/* Result */
+.result-box {
+    margin-top: 25px;
+    padding: 20px;
+    border-radius: 15px;
+}
+
+.anemic {
+    background: rgba(255,0,0,0.15);
+}
+
+.normal {
+    background: rgba(0,255,150,0.15);
+}
+
+.images {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.img-box {
+    width: 100%;
+    text-align: center;
+}
+
+.img-box p {
+    font-size: 13px;
+    margin-bottom: 5px;
+}
+
+.img-box img {
+    width: 100%;
+    border-radius: 10px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container {
+        width: 95%;
+    }
+
+    .images {
+        flex-direction: column;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Anemia Detection System</h1>
+<p class="subtitle">Conjunctiva-based analysis from eye images</p>
+
+<form id="uploadForm" action="/predict" method="post" enctype="multipart/form-data">
+
+    <div class="drop-zone" id="dropZone">
+        Drag & Drop Image Here or Click to Upload
+        <input type="file" name="file" id="fileInput" accept="image/*" required>
+    </div>
+
+    <div class="preview" id="preview"></div>
+
+    <button type="submit">Analyze Image</button>
+
+</form>
+
+<div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p>Analyzing...</p>
+</div>
+
+{% if prediction %}
+<div class="result-box {% if prediction == 'ANEMIC' %}anemic{% else %}normal{% endif %}">
+
+    <h2>
+    {% if prediction == "ANEMIC" %}
+        ⚠️ Anemia Detected
+    {% else %}
+        ✅ Normal Condition
+    {% endif %}
+    </h2>
+
+    <p>Confidence: {{ confidence }}%</p>
+
+    <div class="images">
+
+        <div class="img-box">
+            <p>Original</p>
+            <img src="{{ original }}">
+        </div>
+
+        <div class="img-box">
+            <p>Detection</p>
+            <img src="{{ detected }}">
+        </div>
+
+        <div class="img-box">
+            <p>Model Focus</p>
+            <img src="{{ gradcam }}">
+        </div>
+
+    </div>
+
+</div>
+{% endif %}
+
+</div>
+
+<script>
+const dropZone = document.getElementById("dropZone");
+const fileInput = document.getElementById("fileInput");
+const preview = document.getElementById("preview");
+const form = document.getElementById("uploadForm");
+const loading = document.getElementById("loading");
+
+dropZone.addEventListener("click", () => fileInput.click());
+
+fileInput.addEventListener("change", function() {
+    const file = this.files[0];
+    showPreview(file);
+});
+
+dropZone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropZone.classList.add("dragover");
+});
+
+dropZone.addEventListener("dragleave", () => {
+    dropZone.classList.remove("dragover");
+});
+
+dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("dragover");
+    const file = e.dataTransfer.files[0];
+    fileInput.files = e.dataTransfer.files;
+    showPreview(file);
+});
+
+function showPreview(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        preview.innerHTML = `<img src="${e.target.result}">`;
+    };
+    reader.readAsDataURL(file);
+}
+
+form.addEventListener("submit", () => {
+    loading.style.display = "block";
+});
+</script>
+
+</body>
+</html>
